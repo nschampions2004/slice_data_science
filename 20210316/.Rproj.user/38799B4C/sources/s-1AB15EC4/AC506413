@@ -1,0 +1,27 @@
+{
+    "id": "AC506413",
+    "path": "~/Projects/Random/slice_data_science/20210316/video_games.R",
+    "project_path": "video_games.R",
+    "type": "r_source",
+    "hash": "0",
+    "contents": "",
+    "dirty": true,
+    "created": 1615939198112.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "312,0",
+        "scrollLine": "292"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1615956529,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1615956534869,
+    "read_only": false,
+    "read_only_alternatives": []
+}
