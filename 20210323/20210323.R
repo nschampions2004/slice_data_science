@@ -208,6 +208,51 @@ xgb_preds
 # those look like reasonable predictions
 # Okay, I have something to turn in.... now on to the SHAPs!!!!!
 
+pred_frame_chk <- best_xgb %>% 
+  predict(views_final) %>% 
+  bind_cols(views_final) %>% 
+  mutate(actual_over_expected = totalViews - .pred) 
+
+pred_frame_chk %>% 
+  ggplot(aes(x = totalViews, y = .pred)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  scale_x_continuous(labels = comma) +
+  scale_y_continuous(labels = comma) +
+  labs(title = "preds vs. actuals",
+       subtitle = "looks pretty good, as it should be since the data was trained on this",
+       x = "actuals",
+       y = "preds") +
+  theme(plot.title.position = "plot")
+
+pred_frame_chk %>% 
+  pull(actual_over_expected) %>% 
+  hist()
+
+# [1] ".pred"                  "daysSinceCreation"      
+# "daysSinceLastUpdate"   # [4] "totalDownloads"         
+# "totalVotes"             "totalKernels"     # [7] "datasetTagCount"        "competitionTagCount"    "kernelTagCount"        
+# [10] "totalCompressedBytes"   "totalUncompressedBytes" 
+# "totalViews"            # [13] "actual_over_expected"
+
+
+pred_plotter <- function(df, field) {
+
+  ggplot(df, aes(x = {{field}}, y = .pred)) +
+    geom_point() +
+    geom_smooth() +
+    scale_x_continuous(labels = comma) +
+    scale_y_continuous(labels = comma) +
+    theme(plot.title.position = "plot")
+}
+
+pred_plotter(pred_frame_chk)
+
+map(.f = pred_plotter, 
+    .x = map(.f = as.name, 
+             .x = names(pred_frame_chk)
+         )
+    , df = pred_frame_chk)
 
 xgb_preds %>% 
   write_csv(file.path(predictions_folder, 'xgb_preds.csv'))
