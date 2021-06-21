@@ -65,11 +65,11 @@ training <- bake(store_recipe, new_data =NULL )
 testing  <- bake(store_recipe, new_data =store_test)
 
 set.seed(42069) # such a hard decision
-stores_folds <- vfold_cv(data = training, v = 5)
+stores_folds <- vfold_cv(data = training, v = 10)
 
 stores_xgb <- boost_tree(mode = "regression",
                          learn_rate = tune(),
-                         trees = 500,
+                         trees = tune(),
                          mtry = tune(),
                          tree_depth = tune()
                          ) %>% 
@@ -81,38 +81,42 @@ stores_wkflow <- workflow() %>%
 
 stores_metrics <- metric_set(rmse)
 
-doParallel::registerDoParallel(5)
-stores_grid <- tune_grid(stores_wkflow,
+set.seed(42069)
+xgb_param <- 
+  stores_wkflow %>% 
+  parameters() %>% 
+  update(
+    learn_rate = dials::learn_rate(),
+    mtry = mtry(c(1L, 10L)),
+    trees  = trees(),
+    tree_depth = tree_depth()
+  )
+
+doParallel::registerDoParallel(10)
+startingTime <- Sys.time()
+stores_bayes <- tune_bayes(stores_wkflow,
    resamples = stores_folds,
-   grid = crossing(learn_rate = c(0.3, 0.4),
-                   mtry = c(0.8, 1.0),
-                   tree_depth = c(3, 5, 8)),
    metrics = stores_metrics,
-   control = control_grid(verbose = TRUE, save_pred = TRUE))
+   param_info = xgb_param,
+   initial = 10,
+   iter = 30,
+   control = control_bayes(verbose = TRUE))
+Sys.time() - startingTime
 
-# $10 all models fail
 
-# check out the behavior
-stores_grid %>% autoplot()
+stores_bayes %>% 
+  autoplot(type = "performance") + 
+  ylim(0, 1000)
 
-stores_grid %>% 
-  collect_metrics() %>% 
-  ggplot(aes(x = learn_rate, y = mean)) +
-  geom_point() +
-  labs(title = "initial training results
-# higher mtry and learn rate the better with 500 trees... which is expected with 4 variables
-")
+stores_bayes %>% 
+  autoplot(type = "parameters")
 
-# 78 for 4
-# 88 for 6
-# 88 for 7
 
-# fit the
-best_params <- stores_grid %>% 
+final_params <- stores_bayes %>% 
   select_best()
 
 final_stores_xgb <- stores_xgb %>% 
-  finalize_model(best_params)
+  finalize_model(final_params)
 
 final_fit <- final_stores_xgb %>% 
   fit(formula = profit ~ ., data = training)
@@ -123,7 +127,4 @@ final_preds <- final_fit %>%
   select(id, profit = .pred)
 
 final_preds %>% 
-  write_csv(file.path(predictions_folder, "attempt8_no_geo_markers.csv"))
-
-
-
+  write_csv(file.path(predictions_folder, "attempt9_bayes.csv"))
